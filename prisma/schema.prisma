@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  password  String?  // Hashed
+  nick      String?
+  name      String?
+  phone     String?
+  discord   String?
+  telegram  String?  // Telegram Chat ID or Username
+  role      String   @default("user") // admin, friend, user
+  score     Int      @default(0)
+  
+  tierId    String?
+  tier      Tier?    @relation(fields: [tierId], references: [id])
+  
+  managerId String?
+  manager   User?    @relation("UserToManager", fields: [managerId], references: [id])
+  users     User[]   @relation("UserToManager") // Sub-users (friends)
+
+  assignedTasks Task[] @relation("Assignee")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  subject     String
+  description String?
+  file        String?
+  status      String   @default("PENDING") // PENDING, WAITING_APPROVAL, IN_PROGRESS, WAITING_VERIFICATION, COMPLETED, CANCELLED
+  reward      Float    @default(0)
+  duration    DateTime?
+  
+  tierId      String?
+  tier        Tier?    @relation(fields: [tierId], references: [id])
+  
+  tags        Tag[]
+
+  assigneeId  String?
+  assignee    User?    @relation("Assignee", fields: [assigneeId], references: [id])
+
+  // Targeting
+  targetType     String   @default("all")
+  targetUserIds  String?  // JSON string e.g. ["u1", "u2"]
+  targetTopCount Int?
+  
+  proofUrl    String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Tag {
+  id    String @id @default(cuid())
+  name  String @unique
+  tasks Task[]
+}
+
+model Tier {
+  id            String @id @default(cuid())
+  name          String @unique
+  requiredScore Int    @default(0)
+  users         User[]
+  tasks         Task[]
+}
