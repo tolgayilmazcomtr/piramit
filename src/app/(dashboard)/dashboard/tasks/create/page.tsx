@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,7 +18,6 @@ import { Loader2 } from "lucide-react";
 
 // Developer: Tolga Yılmaz
 export default function CreateTaskPage() {
-    const { token } = useAuth();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
 
@@ -48,9 +46,9 @@ export default function CreateTaskPage() {
         const fetchData = async () => {
             try {
                 const [tiersRes, tagsRes, usersRes] = await Promise.all([
-                    fetch("/api/tiers", { headers: { Authorization: token || "" } }),
-                    fetch("/api/tags", { headers: { Authorization: token || "" } }),
-                    fetch("/api/users", { headers: { Authorization: token || "" } }),
+                    fetch("/api/tiers"),
+                    fetch("/api/tags"),
+                    fetch("/api/users"),
                 ]);
 
                 if (tiersRes.ok) setTiers(await tiersRes.json());
@@ -61,8 +59,8 @@ export default function CreateTaskPage() {
             }
         };
 
-        if (token) fetchData();
-    }, [token]);
+        fetchData();
+    }, []);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -99,11 +97,10 @@ export default function CreateTaskPage() {
         };
 
         try {
-            const res = await fetch("/api/task/create", {
+            const res = await fetch("/api/tasks/create", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: token || "",
                 },
                 body: JSON.stringify(payload),
             });

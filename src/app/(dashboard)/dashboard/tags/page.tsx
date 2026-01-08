@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
 import {
     Table,
     TableBody,
@@ -25,7 +24,6 @@ import {
 
 // Developer: Tolga Yılmaz
 export default function TagsPage() {
-    const { token } = useAuth();
     const [tags, setTags] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAddOpen, setIsAddOpen] = useState(false);
@@ -33,9 +31,7 @@ export default function TagsPage() {
 
     const fetchTags = async () => {
         try {
-            const res = await fetch("/api/tags", {
-                headers: { Authorization: token || "" },
-            });
+            const res = await fetch("/api/tags");
             if (res.ok) {
                 const data = await res.json();
                 setTags(Array.isArray(data) ? data : []);
@@ -48,17 +44,16 @@ export default function TagsPage() {
     };
 
     useEffect(() => {
-        if (token) fetchTags();
-    }, [token]);
+        fetchTags();
+    }, []);
 
     const handleAddTag = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await fetch("/api/tag/create", {
+            const res = await fetch("/api/tags/create", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: token || "",
                 },
                 body: JSON.stringify({ name: newTagName }),
             });

@@ -13,7 +13,7 @@ import {
     LogOut,
     UserCheck
 } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 
 // Developer: Tolga Yılmaz
@@ -32,7 +32,8 @@ const friendLinks = [
 
 export function Sidebar() {
     const pathname = usePathname();
-    const { logout, role } = useAuth();
+    const { data: session } = useSession();
+    const role = (session?.user as any)?.role || "user";
 
     const links = role === "friend" ? friendLinks : adminLinks;
 
@@ -64,7 +65,7 @@ export function Sidebar() {
                 <Button
                     variant="ghost"
                     className="w-full justify-start gap-4"
-                    onClick={logout}
+                    onClick={() => signOut({ callbackUrl: "/login" })}
                 >
                     <LogOut className="h-4 w-4" />
                     Çıkış Yap

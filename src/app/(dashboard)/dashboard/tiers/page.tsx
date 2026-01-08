@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
 import {
     Table,
     TableBody,
@@ -25,7 +24,6 @@ import {
 
 // Developer: Tolga Yılmaz
 export default function TiersPage() {
-    const { token } = useAuth();
     const [tiers, setTiers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAddOpen, setIsAddOpen] = useState(false);
@@ -33,9 +31,7 @@ export default function TiersPage() {
 
     const fetchTiers = async () => {
         try {
-            const res = await fetch("/api/tiers", {
-                headers: { Authorization: token || "" },
-            });
+            const res = await fetch("/api/tiers");
             if (res.ok) {
                 const data = await res.json();
                 setTiers(Array.isArray(data) ? data : []);
@@ -48,8 +44,8 @@ export default function TiersPage() {
     };
 
     useEffect(() => {
-        if (token) fetchTiers();
-    }, [token]);
+        fetchTiers();
+    }, []);
 
     const handleAddTier = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -58,7 +54,6 @@ export default function TiersPage() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: token || "",
                 },
                 body: JSON.stringify({ name: newTierName }),
             });

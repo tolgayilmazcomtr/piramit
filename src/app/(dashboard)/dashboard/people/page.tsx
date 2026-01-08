@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
 import {
     Table,
     TableBody,
@@ -28,7 +27,6 @@ import { Textarea } from "@/components/ui/textarea";
 
 // Developer: Tolga Yılmaz
 export default function PeoplePage() {
-    const { token } = useAuth();
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -51,9 +49,7 @@ export default function PeoplePage() {
 
     const fetchUsers = async () => {
         try {
-            const res = await fetch("/api/users", {
-                headers: { Authorization: token || "" },
-            });
+            const res = await fetch("/api/users");
             if (res.ok) {
                 const data = await res.json();
                 setUsers(Array.isArray(data) ? data : []);
@@ -66,17 +62,16 @@ export default function PeoplePage() {
     };
 
     useEffect(() => {
-        if (token) fetchUsers();
-    }, [token]);
+        fetchUsers();
+    }, []);
 
     const handleAddPerson = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await fetch("/api/person/create", {
+            const res = await fetch("/api/users/create", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: token || "",
                 },
                 body: JSON.stringify(newPerson),
             });
@@ -95,11 +90,10 @@ export default function PeoplePage() {
     const handleRatePerson = async () => {
         if (!selectedUser) return;
         try {
-            const res = await fetch("/api/person/rate", {
+            const res = await fetch("/api/users/rate", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: token || "",
                 },
                 body: JSON.stringify({
                     userId: selectedUser.id,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -12,35 +12,29 @@ export default function DashboardLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const { isAuthenticated, isLoading } = useAuth();
+    const { data: session, status } = useSession();
     const router = useRouter();
 
     useEffect(() => {
-        if (!isLoading && !isAuthenticated) {
+        if (status === "unauthenticated") {
             router.push("/login");
         }
-    }, [isAuthenticated, isLoading, router]);
+    }, [status, router]);
 
-    if (isLoading) {
-        return (
-            <div className="flex h-screen items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            </div>
-        );
+    if (status === "loading") {
+        return <div className="flex items-center justify-center h-screen">Yükleniyor...</div>;
     }
 
-    if (!isAuthenticated) return null;
+    if (!session) return null;
 
     return (
-        <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
+        <div className="flex min-h-screen">
             <div className="hidden border-r bg-gray-100/40 lg:block dark:bg-gray-800/40">
                 <Sidebar />
             </div>
-            <div className="flex flex-col">
+            <div className="flex-1 flex flex-col">
                 <Header />
-                <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
-                    {children}
-                </main>
+                <main className="p-6 overflow-auto">{children}</main>
             </div>
         </div>
     );

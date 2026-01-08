@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { signIn } from "next-auth/react";
 import { Loader2 } from "lucide-react";
 
 // Developer: Tolga Yılmaz
@@ -10,7 +10,6 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const { login } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -18,27 +17,23 @@ export default function LoginPage() {
         setError("");
 
         try {
-            const res = await fetch("/api/auth/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password }),
+            const res = await signIn("credentials", {
+                email,
+                password,
+                redirect: false,
             });
 
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.message || "Giriş başarısız");
+            if (res?.error) {
+                setError("Giriş bilgileri hatalı.");
+            } else {
+                // Başarılı giriş
+                // window.location.href = "/dashboard"; // signIn redirect:false ise manuel yönlendirme yapılabilir veya router.push
+                // Ancak NextAuth genellikle redirect true ile otomatik yapar.
+                // Biz burada router kullanalım
+                window.location.href = "/dashboard";
             }
-
-            // n8n'den dönen veriye göre token ve rolü ayarla
-            // Varsayılan olarak data.token ve data.role bekliyoruz
-            // Eğer n8n sadece success dönüyorsa, basit bir token simüle edebiliriz
-            const token = data.token || "mock-token-" + Date.now();
-            const role = data.role || "admin";
-
-            login(token, role);
         } catch (err: any) {
-            setError(err.message);
+            setError("Bir hata oluştu.");
         } finally {
             setLoading(false);
         }

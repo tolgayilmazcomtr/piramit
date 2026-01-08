@@ -1,12 +1,11 @@
 "use client";
 
-import { AuthProvider } from "@/context/AuthContext";
+import { SessionProvider } from "next-auth/react";
 
-// Developer: Tolga Yılmaz
 export default function NextAuthProvider({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    return <AuthProvider>{children}</AuthProvider>;
+    return <SessionProvider>{children}</SessionProvider>;
 }

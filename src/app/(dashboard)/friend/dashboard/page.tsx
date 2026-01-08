@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
 import {
     Table,
     TableBody,
@@ -16,7 +15,6 @@ import { Check, X } from "lucide-react";
 
 // Developer: Tolga Yılmaz
 export default function FriendDashboard() {
-    const { token } = useAuth();
     const [approvals, setApprovals] = useState<any[]>([]);
     const [verifications, setVerifications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -24,8 +22,8 @@ export default function FriendDashboard() {
     const fetchData = async () => {
         try {
             const [appRes, verRes] = await Promise.all([
-                fetch("/api/approvals/pending", { headers: { Authorization: token || "" } }),
-                fetch("/api/verifications/pending", { headers: { Authorization: token || "" } }),
+                fetch("/api/approvals/pending"),
+                fetch("/api/verifications/pending"),
             ]);
 
             if (appRes.ok) setApprovals((await appRes.json()) || []);
@@ -38,8 +36,8 @@ export default function FriendDashboard() {
     };
 
     useEffect(() => {
-        if (token) fetchData();
-    }, [token]);
+        fetchData();
+    }, []);
 
     const handleAction = async (id: string, type: "approval" | "verification", action: "approve" | "reject") => {
         try {
@@ -47,7 +45,6 @@ export default function FriendDashboard() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: token || "",
                 },
                 body: JSON.stringify({ id, type, action }),
             });

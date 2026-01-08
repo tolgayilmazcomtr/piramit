@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
 import {
     Table,
     TableBody,
@@ -28,7 +27,6 @@ type Task = {
 };
 
 export default function TasksPage() {
-    const { token } = useAuth();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
     const [search, setSearch] = useState("");
@@ -38,12 +36,9 @@ export default function TasksPage() {
     useEffect(() => {
         const fetchTasks = async () => {
             try {
-                const res = await fetch("/api/tasks", {
-                    headers: { Authorization: token || "" },
-                });
+                const res = await fetch("/api/tasks");
                 if (res.ok) {
                     const data = await res.json();
-                    // Eğer data array değilse boş array kabul et
                     setTasks(Array.isArray(data) ? data : []);
                 }
             } catch (error) {
@@ -53,8 +48,8 @@ export default function TasksPage() {
             }
         };
 
-        if (token) fetchTasks();
-    }, [token]);
+        fetchTasks();
+    }, []);
 
     useEffect(() => {
         let result = tasks;

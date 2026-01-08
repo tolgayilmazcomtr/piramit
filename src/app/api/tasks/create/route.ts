@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
         // Real logic needs user's Telegram ID from DB.
         // For now, we will try to find users based on targeting.
 
-        let targetUsers = [];
+        let targetUsers: any[] = [];
         if (target.type === "all") {
             targetUsers = await prisma.user.findMany({ where: { role: 'user', telegram: { not: null } } });
         } else if (target.type === "selected") {
