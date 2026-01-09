@@ -3,9 +3,10 @@ import Credentials from "next-auth/providers/credentials"
 import { z } from "zod"
 import prisma from "@/lib/prisma"
 import bcrypt from "bcryptjs"
-import type { NextAuthConfig } from "next-auth"
+import { authConfig } from "./auth.config"
 
-export const authConfig = {
+export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth({
+    ...authConfig,
     providers: [
         Credentials({
             async authorize(credentials) {
@@ -26,7 +27,6 @@ export const authConfig = {
                             name: user.name,
                             email: user.email,
                             role: user.role,
-                            // Return other fields if needed, but extend types first
                         };
                     }
                 }
@@ -36,28 +36,4 @@ export const authConfig = {
             },
         }),
     ],
-    pages: {
-        signIn: '/login',
-    },
-    callbacks: {
-        async jwt({ token, user }) {
-            if (user) {
-                token.role = (user as any).role;
-                token.id = user.id;
-            }
-            return token;
-        },
-        async session({ session, token }) {
-            if (token && session.user) {
-                (session.user as any).role = token.role;
-                (session.user as any).id = token.id;
-            }
-            return session;
-        },
-    },
-    secret: process.env.NEXTAUTH_SECRET,
-    session: { strategy: 'jwt' },
-    trustHost: true,
-} satisfies NextAuthConfig
-
-export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth(authConfig)
+})
