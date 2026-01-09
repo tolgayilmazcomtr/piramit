@@ -37,10 +37,14 @@ export async function POST(req: NextRequest) {
                 notifyMessage = `🎉 Görev tamamlandı onaylandı! Ödül: ${task.reward} puan.`;
                 // Update user score here?
                 if (task.assigneeId) {
-                    await prisma.user.update({
-                        where: { id: task.assigneeId },
-                        data: { score: { increment: Math.floor(task.reward) } }
-                    });
+                    // Try to parse number from string reward (e.g. "100 TL" -> 100)
+                    const rewardPoints = task.reward ? parseInt(task.reward.replace(/[^0-9]/g, '')) || 0 : 0;
+                    if (rewardPoints > 0) {
+                        await prisma.user.update({
+                            where: { id: task.assigneeId },
+                            data: { score: { increment: rewardPoints } }
+                        });
+                    }
                 }
             } else {
                 newStatus = "IN_PROGRESS"; // Return to progress if rejected?

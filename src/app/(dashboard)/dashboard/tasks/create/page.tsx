@@ -92,7 +92,7 @@ export default function CreateTaskPage() {
                 userIds: targetType === "selected" ? selectedUsers : [],
                 topCount: targetType === "top" ? topUserCount : undefined,
             },
-            reward: hasReward ? Number(rewardAmount) : 0,
+            reward: hasReward ? rewardAmount : "",
             duration,
         };
 
@@ -278,14 +278,13 @@ export default function CreateTaskPage() {
                                         checked={hasReward}
                                         onChange={(e) => setHasReward(e.target.checked)}
                                     />
-                                    <Label htmlFor="hasReward">Parasal Ödül Var mı?</Label>
+                                    <Label htmlFor="hasReward">Ödül Var mı?</Label>
                                 </div>
                                 {hasReward && (
                                     <Input
-                                        type="number"
-                                        placeholder="Miktar"
                                         value={rewardAmount}
                                         onChange={(e) => setRewardAmount(e.target.value)}
+                                        placeholder="Örn: 100 TL veya Premium"
                                     />
                                 )}
                             </div>
