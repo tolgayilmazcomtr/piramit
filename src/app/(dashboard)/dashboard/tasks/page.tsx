@@ -40,6 +40,12 @@ type Task = {
     reward?: string;
     duration?: string;
     tags?: { name: string }[];
+    stats?: {
+        total: number;
+        accepted: number;
+        completed: number;
+        rejected: number;
+    };
 };
 
 export default function TasksPage() {
@@ -53,6 +59,11 @@ export default function TasksPage() {
     // Edit State
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editTask, setEditTask] = useState<any>({});
+
+    // Assignments State
+    const [isAssignmentsOpen, setIsAssignmentsOpen] = useState(false);
+    const [selectedTaskAssignments, setSelectedTaskAssignments] = useState<any[]>([]);
+    const [currentTaskSubject, setCurrentTaskSubject] = useState("");
 
     const fetchTasks = async () => {
         try {
@@ -140,6 +151,22 @@ export default function TasksPage() {
         }
     };
 
+    const handleViewAssignments = async (task: Task) => {
+        setCurrentTaskSubject(task.subject);
+        try {
+            const res = await fetch(`/api/tasks/${task.id}/assignments`);
+            if (res.ok) {
+                const data = await res.json();
+                setSelectedTaskAssignments(Array.isArray(data) ? data : []);
+                setIsAssignmentsOpen(true);
+            } else {
+                alert("Atamalar çekilemedi.");
+            }
+        } catch (e) {
+            alert("Hata: " + e);
+        }
+    };
+
     const openEditModal = (task: any) => {
         setEditTask({
             id: task.id,
@@ -201,7 +228,7 @@ export default function TasksPage() {
                                 <TableRow>
                                     <TableHead>Görev Konusu</TableHead>
                                     <TableHead>Etiketler</TableHead>
-                                    <TableHead>Atanan</TableHead>
+                                    <TableHead>Kabul / Tamamlanan</TableHead>
                                     <TableHead>Durum</TableHead>
                                     <TableHead>Ödül</TableHead>
                                     <TableHead>İşlemler</TableHead>
@@ -238,10 +265,25 @@ export default function TasksPage() {
                                                     ))}
                                                 </div>
                                             </TableCell>
-                                            <TableCell>{task.assignee?.name || "-"}</TableCell>
+                                            <TableCell>
+                                                <div className="text-xs space-y-1">
+                                                    <div className="text-green-600 font-semibold">
+                                                        Kabul: {task.stats?.accepted || 0}
+                                                    </div>
+                                                    <div className="text-blue-600 font-semibold">
+                                                        Tamam: {task.stats?.completed || 0}
+                                                    </div>
+                                                </div>
+                                            </TableCell>
                                             <TableCell>{getStatusBadge(task.status)}</TableCell>
                                             <TableCell>
+                                                {task.reward || "-"}
+                                            </TableCell>
+                                            <TableCell>
                                                 <div className="flex gap-2">
+                                                    <Button size="icon" variant="ghost" title="Detaylar / Katılımcılar" onClick={() => handleViewAssignments(task)}>
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
                                                     <Button size="icon" variant="ghost" onClick={() => openEditModal(task)}>
                                                         <Edit className="h-4 w-4" />
                                                     </Button>
@@ -325,5 +367,39 @@ export default function TasksPage() {
                 </DialogContent>
             </Dialog>
         </div>
+            <Dialog open={isAssignmentsOpen} onOpenChange={setIsAssignmentsOpen}>
+                <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>Görev Katılımcıları: {currentTaskSubject}</DialogTitle>
+                    </DialogHeader>
+                    <div>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Kullanıcı</TableHead>
+                                    <TableHead>Durum</TableHead>
+                                    <TableHead>Atanma Tarihi</TableHead>
+                                    <TableHead>Puan</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {selectedTaskAssignments.length === 0 ? (
+                                    <TableRow><TableCell colSpan={4}>Henüz katılımcı yok.</TableCell></TableRow>
+                                ) : (
+                                    selectedTaskAssignments.map((a: any) => (
+                                        <TableRow key={a.id}>
+                                            <TableCell>{a.user.nick || a.user.name} ({a.user.role})</TableCell>
+                                            <TableCell><Badge variant="outline">{a.status}</Badge></TableCell>
+                                            <TableCell>{new Date(a.assignedAt).toLocaleDateString('tr-TR')}</TableCell>
+                                            <TableCell>{a.score || "-"}</TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </div >
     );
 }
