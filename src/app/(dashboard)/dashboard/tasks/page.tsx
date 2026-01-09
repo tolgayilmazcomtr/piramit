@@ -13,7 +13,23 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, XCircle, CheckCircle } from "lucide-react";
+import { Eye, Trash2, Edit } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter
+} from "@/components/ui/dialog";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 // Developer: Tolga Yılmaz
 type Task = {
@@ -28,27 +44,45 @@ type Task = {
 
 export default function TasksPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
     const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchTasks = async () => {
-            try {
-                const res = await fetch("/api/tasks");
-                if (res.ok) {
-                    const data = await res.json();
-                    setTasks(Array.isArray(data) ? data : []);
-                }
-            } catch (error) {
-                console.error("Görevler çekilemedi:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    // Edit State
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [editTask, setEditTask] = useState<any>({});
 
+    const fetchTasks = async () => {
+        try {
+            const res = await fetch("/api/tasks");
+            if (res.ok) {
+                const data = await res.json();
+                setTasks(Array.isArray(data) ? data : []);
+            }
+        } catch (error) {
+            console.error("Görevler çekilemedi:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchUsers = async () => {
+        try {
+            const res = await fetch("/api/users");
+            if (res.ok) {
+                const data = await res.json();
+                setUsers(Array.isArray(data) ? data : []);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    useEffect(() => {
         fetchTasks();
+        fetchUsers();
     }, []);
 
     useEffect(() => {
@@ -66,6 +100,57 @@ export default function TasksPage() {
 
         setFilteredTasks(result);
     }, [tasks, search, statusFilter]);
+
+    const handleDeleteTask = async (taskId: string) => {
+        if (!confirm("Bu görevi silmek istediğinize emin misiniz?")) return;
+        try {
+            const res = await fetch("/api/tasks/delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: taskId }),
+            });
+            if (res.ok) {
+                alert("Görev silindi!");
+                fetchTasks();
+            } else {
+                alert("Hata oluştu");
+            }
+        } catch (e) {
+            alert("Hata: " + e);
+        }
+    };
+
+    const handleUpdateTask = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const res = await fetch("/api/tasks/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(editTask),
+            });
+            if (res.ok) {
+                alert("Görev güncellendi!");
+                setIsEditOpen(false);
+                fetchTasks();
+            } else {
+                alert("Hata oluştu");
+            }
+        } catch (e) {
+            alert("Hata: " + e);
+        }
+    };
+
+    const openEditModal = (task: any) => {
+        setEditTask({
+            id: task.id,
+            subject: task.subject,
+            description: task.description || "",
+            reward: task.reward || 0,
+            status: task.status,
+            assigneeId: task.assigneeId || "no_assignee"
+        });
+        setIsEditOpen(true);
+    };
 
     const getStatusBadge = (status: string) => {
         switch (status) {
@@ -156,15 +241,12 @@ export default function TasksPage() {
                                             <TableCell>{task.assignee?.name || "-"}</TableCell>
                                             <TableCell>{getStatusBadge(task.status)}</TableCell>
                                             <TableCell>
-                                                {task.reward ? `${task.reward} ₺` : "-"}
-                                            </TableCell>
-                                            <TableCell>
                                                 <div className="flex gap-2">
-                                                    <Button size="icon" variant="ghost">
-                                                        <Eye className="h-4 w-4" />
+                                                    <Button size="icon" variant="ghost" onClick={() => openEditModal(task)}>
+                                                        <Edit className="h-4 w-4" />
                                                     </Button>
-                                                    <Button size="icon" variant="ghost" className="text-red-500">
-                                                        <XCircle className="h-4 w-4" />
+                                                    <Button size="icon" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-100" onClick={() => handleDeleteTask(task.id)}>
+                                                        <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                             </TableCell>
@@ -176,6 +258,72 @@ export default function TasksPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Görevi Düzenle</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleUpdateTask} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2">
+                                <Label>Görev Konusu</Label>
+                                <Input
+                                    value={editTask.subject}
+                                    onChange={(e) => setEditTask({ ...editTask, subject: e.target.value })}
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <Label>Açıklama</Label>
+                                <Textarea
+                                    value={editTask.description}
+                                    onChange={(e) => setEditTask({ ...editTask, description: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <Label>Ödül (TL)</Label>
+                                <Input
+                                    type="number"
+                                    value={editTask.reward}
+                                    onChange={(e) => setEditTask({ ...editTask, reward: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <Label>Durum</Label>
+                                <Select
+                                    value={editTask.status}
+                                    onValueChange={(val) => setEditTask({ ...editTask, status: val })}
+                                >
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="PENDING">Bekliyor (PENDING)</SelectItem>
+                                        <SelectItem value="WAITING_APPROVAL">Onay Bekliyor</SelectItem>
+                                        <SelectItem value="IN_PROGRESS">Devam Ediyor</SelectItem>
+                                        <SelectItem value="COMPLETED">Tamamlandı</SelectItem>
+                                        <SelectItem value="CANCELLED">İptal</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="col-span-2">
+                                <Label>Atanan Kişi (Assignee)</Label>
+                                <Select
+                                    value={editTask.assigneeId || "no_assignee"}
+                                    onValueChange={(val) => setEditTask({ ...editTask, assigneeId: val })}
+                                >
+                                    <SelectTrigger><SelectValue placeholder="Kişi Seçiniz" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="no_assignee">Atanmamış</SelectItem>
+                                        {users.map(u => (
+                                            <SelectItem key={u.id} value={u.id}>{u.nick} ({u.role})</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <Button type="submit" className="w-full">Güncelle</Button>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
