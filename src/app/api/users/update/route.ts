@@ -6,7 +6,7 @@ export async function POST(req: Request) {
     try {
         const session = await auth();
         // Check if manager or admin
-        const isAuthorized = session?.user?.role === "admin" || session?.user?.role === "manager";
+        const isAuthorized = (session?.user as any)?.role === "admin" || (session?.user as any)?.role === "manager";
 
         if (!isAuthorized) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
         }
 
         // Only Admin can change role or manager
-        const isAdmin = session?.user?.role === "admin";
+        const isAdmin = (session?.user as any)?.role === "admin";
 
         let updateData: any = {
             nick,

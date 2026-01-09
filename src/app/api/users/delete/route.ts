@@ -6,7 +6,7 @@ export async function POST(req: Request) {
     try {
         const session = await auth();
         // Only admin can delete users usually, or manager? Let's allow admin for now.
-        const isAdmin = session?.user?.role === "admin";
+        const isAdmin = (session?.user as any)?.role === "admin";
 
         if (!isAdmin) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
