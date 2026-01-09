@@ -366,7 +366,6 @@ export default function TasksPage() {
                     </form>
                 </DialogContent>
             </Dialog>
-        </div>
             <Dialog open={isAssignmentsOpen} onOpenChange={setIsAssignmentsOpen}>
                 <DialogContent className="max-w-3xl">
                     <DialogHeader>
