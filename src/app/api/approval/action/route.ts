@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
                 // Update user score here?
                 if (task.assigneeId) {
                     // Try to parse number from string reward (e.g. "100 TL" -> 100)
-                    const rewardPoints = task.reward ? parseInt(task.reward.replace(/[^0-9]/g, '')) || 0 : 0;
+                    const rewardPoints = task.reward ? parseInt(String(task.reward).replace(/[^0-9]/g, '')) || 0 : 0;
                     if (rewardPoints > 0) {
                         await prisma.user.update({
                             where: { id: task.assigneeId },
