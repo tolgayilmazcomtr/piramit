@@ -5,16 +5,29 @@ import { auth } from "@/auth";
 
 export async function POST(req: NextRequest) {
     const session = await auth();
-    if (!session) {
+    if (!session?.user) {
         return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Role logic
+    const currentUserRole = (session.user as any).role;
+    const currentUserId = (session.user as any).id;
+
     try {
         const body = await req.json();
-        const { nick, name, phone, discord, telegram, managerId, tierId } = body;
+        const { nick, name, phone, discord, telegram, role, managerId, tierId } = body;
 
-        // Use a default password for created users, or generate one.
-        // Requirement didn't specify, we'll use "123456" as default.
+        let finalManagerId = managerId;
+        let finalRole = role || "user"; // Default to user if not specified
+
+        // Hierarchy Enforcement
+        if (currentUserRole !== "admin") {
+            // Non-admins can only create users assign to themselves
+            finalManagerId = currentUserId;
+            // Non-admins cannot create other admins or friends (managers), only users
+            finalRole = "user";
+        }
+
         const hashedPassword = await bcrypt.hash("123456", 10);
 
         const user = await prisma.user.create({
@@ -25,14 +38,8 @@ export async function POST(req: NextRequest) {
                 discord,
                 telegram,
                 password: hashedPassword,
-                // Since email is unique and required in schema (actually I made it optional in my schema? No, email String? @unique. Wait, I should check schema.)
-                // In my schema I wrote `email String? @unique` but typically users need email to login.
-                // The frontend form (Step 0) didn't have email in "Kişi Ekleme Formu", only Nick, Name, Phone, DC, TG.
-                // So email might be null. But NextAuth Credentials usually needs email/username.
-                // We will allow null email for leaf users since they use Telegram presumably?
-                // Ah, Admin uses email/pass.
-                role: "user",
-                managerId: managerId || undefined,
+                role: finalRole,
+                managerId: finalManagerId || undefined,
                 tierId: tierId || undefined
             }
         });
