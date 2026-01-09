@@ -37,7 +37,7 @@ type Task = {
     subject: string;
     status: string;
     assignee?: { name: string };
-    reward?: number;
+    reward?: string;
     duration?: string;
     tags?: { name: string }[];
 };
@@ -145,7 +145,7 @@ export default function TasksPage() {
             id: task.id,
             subject: task.subject,
             description: task.description || "",
-            reward: task.reward || 0,
+            reward: task.reward || "",
             status: task.status,
             assigneeId: task.assigneeId || "no_assignee"
         });
@@ -281,11 +281,11 @@ export default function TasksPage() {
                                 />
                             </div>
                             <div>
-                                <Label>Ödül (TL)</Label>
+                                <Label>Ödül (TL, Eşya, Puan vb.)</Label>
                                 <Input
-                                    type="number"
                                     value={editTask.reward}
                                     onChange={(e) => setEditTask({ ...editTask, reward: e.target.value })}
+                                    placeholder="Örn: 100 TL veya Premium Üyelik"
                                 />
                             </div>
                             <div>

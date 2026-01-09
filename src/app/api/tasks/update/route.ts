@@ -24,7 +24,7 @@ export async function POST(req: Request) {
             data: {
                 subject,
                 description,
-                reward: reward ? parseFloat(reward) : undefined,
+                reward: reward || undefined,
                 status,
                 assigneeId: assigneeId === "no_assignee" ? null : assigneeId
             },

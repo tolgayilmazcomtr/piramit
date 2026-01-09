@@ -31,6 +31,8 @@ model User {
   users     User[]   @relation("UserToManager") // Sub-users (friends)
 
   assignedTasks Task[] @relation("Assignee")
+  assignments   TaskAssignment[]
+  tags          Tag[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -42,7 +44,7 @@ model Task {
   description String?
   file        String?
   status      String   @default("PENDING") // PENDING, WAITING_APPROVAL, IN_PROGRESS, WAITING_VERIFICATION, COMPLETED, CANCELLED
-  reward      Float    @default(0)
+  reward      String?  // Changed to String
   duration    DateTime?
   
   tierId      String?
@@ -52,6 +54,8 @@ model Task {
 
   assigneeId  String?
   assignee    User?    @relation("Assignee", fields: [assigneeId], references: [id])
+
+  assignments TaskAssignment[]
 
   // Targeting
   targetType     String   @default("all")
@@ -64,10 +68,32 @@ model Task {
   updatedAt   DateTime @updatedAt
 }
 
+model TaskAssignment {
+  id        String   @id @default(cuid())
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  status    String   @default("ASSIGNED") // ASSIGNED, ACCEPTED, REJECTED, IN_PROGRESS, COMPLETED, FAILED
+  score     Int?
+  note      String?
+  proofUrl  String?
+  
+  assignedAt  DateTime @default(now())
+  acceptedAt  DateTime?
+  completedAt DateTime?
+
+  @@unique([userId, taskId])
+}
+
 model Tag {
   id    String @id @default(cuid())
   name  String @unique
   tasks Task[]
+  users User[]
 }
 
 model Tier {

@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
                 description,
                 file,
                 tierId: tierId,
-                reward: Number(reward),
+                reward: reward || "",
                 duration: duration ? new Date(duration) : null,
                 status: "PENDING",
                 targetType: target.type,
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
                             ]
                         }
                     };
-                    await bot.sendMessage(user.telegram, `📢 YENİ GÖREV:\n\n*${task.subject}*\n\n${task.description || ''}\n\n💰 Ödül: ${task.reward} puan`, { ...opts, parse_mode: 'Markdown' });
+                    await bot.sendMessage(user.telegram, `📢 YENİ GÖREV:\n\n*${task.subject}*\n\n${task.description || ''}\n\n💰 Ödül: ${task.reward}`, { ...opts, parse_mode: 'Markdown' });
                 } catch (e) {
                     console.error(`Failed to send telegram to ${user.id}`, e);
                 }
