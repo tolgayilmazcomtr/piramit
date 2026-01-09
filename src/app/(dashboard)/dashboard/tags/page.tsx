@@ -13,21 +13,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import { Trash2, Edit, Plus, Users } from "lucide-react";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
+    DialogFooter,
+    DialogTrigger
 } from "@/components/ui/dialog";
 
 // Developer: Tolga Yılmaz
+
 export default function TagsPage() {
     const [tags, setTags] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isAddOpen, setIsAddOpen] = useState(false);
-    const [newTagName, setNewTagName] = useState("");
+
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [editTag, setEditTag] = useState({ id: "", name: "" });
 
     const fetchTags = async () => {
         try {
@@ -36,8 +39,8 @@ export default function TagsPage() {
                 const data = await res.json();
                 setTags(Array.isArray(data) ? data : []);
             }
-        } catch (e) {
-            console.error(e);
+        } catch (error) {
+            console.error(error);
         } finally {
             setLoading(false);
         }
@@ -47,20 +50,18 @@ export default function TagsPage() {
         fetchTags();
     }, []);
 
-    const handleAddTag = async (e: React.FormEvent) => {
+    const handleSaveTag = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await fetch("/api/tags/create", {
+            const res = await fetch("/api/tags", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ name: newTagName }),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(editTag),
             });
             if (res.ok) {
-                alert("Etiket eklendi!");
-                setIsAddOpen(false);
-                setNewTagName("");
+                alert(editTag.id ? "Etiket güncellendi!" : "Etiket oluşturuldu!");
+                setIsEditOpen(false);
+                setEditTag({ id: "", name: "" });
                 fetchTags();
             } else {
                 alert("Hata oluştu");
@@ -70,34 +71,42 @@ export default function TagsPage() {
         }
     };
 
+    const handleDeleteTag = async (id: string) => {
+        if (!confirm("Bu etiketi silmek istediğinize emin misiniz?")) return;
+        try {
+            const res = await fetch("/api/tags", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id }),
+            });
+            if (res.ok) {
+                alert("Etiket silindi!");
+                fetchTags();
+            } else {
+                alert("Hata oluştu");
+            }
+        } catch (e) {
+            alert("Hata: " + e);
+        }
+    };
+
+    const openEdit = (tag: any) => {
+        setEditTag({ id: tag.id, name: tag.name });
+        setIsEditOpen(true);
+    };
+
+    const openCreate = () => {
+        setEditTag({ id: "", name: "" });
+        setIsEditOpen(true);
+    };
+
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
                 <h2 className="text-3xl font-bold tracking-tight">Etiket Yönetimi</h2>
-
-                <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Yeni Etiket
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Yeni Etiket Ekle</DialogTitle>
-                        </DialogHeader>
-                        <form onSubmit={handleAddTag} className="space-y-4">
-                            <div>
-                                <Label>Etiket Adı</Label>
-                                <Input
-                                    required
-                                    value={newTagName}
-                                    onChange={(e) => setNewTagName(e.target.value)}
-                                />
-                            </div>
-                            <Button type="submit" className="w-full">Kaydet</Button>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                <Button onClick={openCreate}>
+                    <Plus className="mr-2 h-4 w-4" /> Yeni Etiket
+                </Button>
             </div>
 
             <Card>
@@ -109,19 +118,37 @@ export default function TagsPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Etiket Adı</TableHead>
-                                <TableHead className="w-[100px]">ID</TableHead>
+                                <TableHead>Kullanıcı Sayısı</TableHead>
+                                <TableHead>Görev Sayısı</TableHead>
+                                <TableHead>İşlemler</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
-                                <TableRow><TableCell colSpan={2}>Yükleniyor...</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={4} className="text-center">Yükleniyor...</TableCell></TableRow>
                             ) : tags.length === 0 ? (
-                                <TableRow><TableCell colSpan={2}>Etiket bulunamadı.</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={4} className="text-center">Etiket bulunamadı.</TableCell></TableRow>
                             ) : (
                                 tags.map((tag) => (
                                     <TableRow key={tag.id}>
                                         <TableCell className="font-medium">{tag.name}</TableCell>
-                                        <TableCell className="text-muted-foreground text-xs">{tag.id}</TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-1">
+                                                <Users className="h-3 w-3 text-gray-400" />
+                                                {tag._count?.users || 0}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{tag._count?.tasks || 0}</TableCell>
+                                        <TableCell>
+                                            <div className="flex gap-2">
+                                                <Button size="icon" variant="ghost" onClick={() => openEdit(tag)}>
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button size="icon" variant="ghost" className="text-red-500" onClick={() => handleDeleteTag(tag.id)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
                                     </TableRow>
                                 ))
                             )}
@@ -129,6 +156,25 @@ export default function TagsPage() {
                     </Table>
                 </CardContent>
             </Card>
+
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editTag.id ? "Etiketi Düzenle" : "Yeni Etiket"}</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleSaveTag} className="space-y-4">
+                        <div>
+                            <Label>Etiket Adı</Label>
+                            <Input
+                                value={editTag.name}
+                                onChange={(e) => setEditTag({ ...editTag, name: e.target.value })}
+                                required
+                            />
+                        </div>
+                        <Button type="submit" className="w-full">Kaydet</Button>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
