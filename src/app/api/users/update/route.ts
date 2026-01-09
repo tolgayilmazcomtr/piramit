@@ -13,7 +13,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { id, nick, name, phone, discord, telegram, role, managerId } = body;
+        const { id, nick, name, phone, discord, telegram, role, managerId, email, password } = body;
 
         if (!id) {
             return NextResponse.json({ error: "User ID is required" }, { status: 400 });
@@ -33,6 +33,11 @@ export async function POST(req: Request) {
         if (isAdmin) {
             if (role) updateData.role = role;
             if (managerId !== undefined) updateData.managerId = managerId === "" ? null : managerId;
+            if (email) updateData.email = email;
+            if (password && password.length > 0) {
+                const hashedPassword = await import("bcryptjs").then(m => m.hash(password, 10));
+                updateData.password = hashedPassword;
+            }
         }
 
         const updatedUser = await prisma.user.update({

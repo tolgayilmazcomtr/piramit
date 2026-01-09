@@ -258,7 +258,6 @@ export default function PeoplePage() {
                             )}
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
                                     <Label>İsim Soyisim</Label>
                                     <Input
                                         value={newPerson.name}
@@ -273,6 +272,31 @@ export default function PeoplePage() {
                                     />
                                 </div>
                             </div>
+                            
+                            {(isAdmin || newPerson.role === "friend" || newPerson.role === "admin") && (
+                                <div className="grid grid-cols-2 gap-4 bg-yellow-50 p-4 rounded-md border border-yellow-200">
+                                    <div className="col-span-2 text-xs font-semibold text-yellow-800 mb-2">Login Bilgileri (Friend/Admin için gereklidir)</div>
+                                    <div>
+                                        <Label>Email (Giriş İçin)</Label>
+                                        <Input
+                                            type="email"
+                                            value={(newPerson as any).email || ""}
+                                            onChange={(e) => setNewPerson({ ...newPerson, email: e.target.value } as any)}
+                                            placeholder="ornek@piramit.com"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label>Şifre</Label>
+                                        <Input
+                                            type="password"
+                                            value={(newPerson as any).password || ""}
+                                            onChange={(e) => setNewPerson({ ...newPerson, password: e.target.value } as any)}
+                                            placeholder="******"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <Label>Discord ID</Label>
@@ -419,22 +443,45 @@ export default function PeoplePage() {
                         )}
 
                         <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <Label>İsim Soyisim</Label>
-                                <Input
-                                    value={editPerson.name}
-                                    onChange={(e) => setEditPerson({ ...editPerson, name: e.target.value })}
-                                />
+                                    <Label>İsim Soyisim</Label>
+                                    <Input
+                                        value={editPerson.name}
+                                        onChange={(e) => setEditPerson({ ...editPerson, name: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <Label>Telefon</Label>
+                                    <Input
+                                        value={editPerson.phone}
+                                        onChange={(e) => setEditPerson({ ...editPerson, phone: e.target.value })}
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <Label>Telefon</Label>
-                                <Input
-                                    value={editPerson.phone}
-                                    onChange={(e) => setEditPerson({ ...editPerson, phone: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
+
+                            {(isAdmin) && (
+                                <div className="grid grid-cols-2 gap-4 bg-yellow-50 p-4 rounded-md border border-yellow-200">
+                                    <div className="col-span-2 text-xs font-semibold text-yellow-800 mb-2">Login Bilgileri Güncelleme</div>
+                                    <div>
+                                        <Label>Email</Label>
+                                        <Input
+                                            type="email"
+                                            value={(editPerson as any).email || ""}
+                                            onChange={(e) => setEditPerson({ ...editPerson, email: e.target.value } as any)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label>Yeni Şifre (Değişmeyecekse boş bırak)</Label>
+                                        <Input
+                                            type="password"
+                                            value={(editPerson as any).password || ""}
+                                            onChange={(e) => setEditPerson({ ...editPerson, password: e.target.value } as any)}
+                                            placeholder="******"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <Label>Discord ID</Label>
                                 <Input
@@ -453,36 +500,36 @@ export default function PeoplePage() {
                         <Button type="submit" className="w-full">Güncelle</Button>
                     </form>
                 </DialogContent>
-            </Dialog>
+            </Dialog >
 
-            <Dialog open={isRateOpen} onOpenChange={setIsRateOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Puan Ver: {selectedUser?.nick}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-6 py-4">
-                        <div className="space-y-2">
-                            <Label>Puan: {rating[0]}</Label>
-                            <Slider
-                                min={1}
-                                max={10}
-                                step={1}
-                                value={rating}
-                                onValueChange={setRating}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Not (Opsiyonel)</Label>
-                            <Textarea
-                                value={ratingNote}
-                                onChange={(e) => setRatingNote(e.target.value)}
-                                placeholder="Puan nedeniniz..."
-                            />
-                        </div>
-                        <Button onClick={handleRatePerson} className="w-full">Kaydet</Button>
+        <Dialog open={isRateOpen} onOpenChange={setIsRateOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Puan Ver: {selectedUser?.nick}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6 py-4">
+                    <div className="space-y-2">
+                        <Label>Puan: {rating[0]}</Label>
+                        <Slider
+                            min={1}
+                            max={10}
+                            step={1}
+                            value={rating}
+                            onValueChange={setRating}
+                        />
                     </div>
-                </DialogContent>
-            </Dialog>
-        </div>
+                    <div className="space-y-2">
+                        <Label>Not (Opsiyonel)</Label>
+                        <Textarea
+                            value={ratingNote}
+                            onChange={(e) => setRatingNote(e.target.value)}
+                            placeholder="Puan nedeniniz..."
+                        />
+                    </div>
+                    <Button onClick={handleRatePerson} className="w-full">Kaydet</Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+        </div >
     );
 }

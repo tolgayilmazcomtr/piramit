@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { nick, name, phone, discord, telegram, role, managerId, tierId } = body;
+        const { nick, name, phone, discord, telegram, role, managerId, tierId, email, password } = body;
 
         let finalManagerId = managerId;
         let finalRole = role || "user"; // Default to user if not specified
@@ -28,7 +28,9 @@ export async function POST(req: NextRequest) {
             finalRole = "user";
         }
 
-        const hashedPassword = await bcrypt.hash("123456", 10);
+        // Use provided password or default '123456'
+        const passwordToHash = password && password.length > 0 ? password : "123456";
+        const hashedPassword = await bcrypt.hash(passwordToHash, 10);
 
         const user = await prisma.user.create({
             data: {
@@ -37,6 +39,7 @@ export async function POST(req: NextRequest) {
                 phone,
                 discord,
                 telegram,
+                email: email || undefined, // Only set if provided
                 password: hashedPassword,
                 role: finalRole,
                 managerId: finalManagerId || undefined,
