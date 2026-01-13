@@ -493,10 +493,21 @@ export default function PeoplePage() {
                             </div>
                             <div>
                                 <Label>Telegram ID</Label>
-                                <Input
-                                    value={editPerson.telegram}
-                                    onChange={(e) => setEditPerson({ ...editPerson, telegram: e.target.value })}
-                                />
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={editPerson.telegram}
+                                        onChange={(e) => setEditPerson({ ...editPerson, telegram: e.target.value })}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => window.open(`https://t.me/torypto_bot?start=${editPerson.id}`, '_blank')}
+                                        title="Kullanıcıya bu linki göndererek veya tıklatarak otomatik eşleşmesini sağlayabilirsiniz."
+                                    >
+                                        🔗 Bağla
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                         <Button type="submit" className="w-full">Güncelle</Button>
