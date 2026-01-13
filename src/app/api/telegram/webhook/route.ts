@@ -101,6 +101,15 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        if (update.message) {
+            const chatId = update.message.chat.id;
+            const text = update.message.text;
+
+            if (text === "/start") {
+                await bot.sendMessage(chatId, `👋 Merhaba! Telegram ID'niz: \`${chatId}\`\n\nBu ID'yi panele gidip kullanıcı ayarlarınıza ekleyebilirsiniz.`, { parse_mode: 'Markdown' });
+            }
+        }
+
         return Response.json({ success: true });
     } catch (error) {
         console.error("Webhook Fatal Error:", error);
