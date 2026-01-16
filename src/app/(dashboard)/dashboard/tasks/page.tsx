@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Trash2, Edit } from "lucide-react";
+import { Eye, Trash2, Edit, Check, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -383,14 +383,16 @@ export default function TasksPage() {
                             </TableHeader>
                             <TableBody>
                                 {selectedTaskAssignments.length === 0 ? (
-                                    <TableRow><TableCell colSpan={4}>Henüz katılımcı yok.</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={4} className="text-center">Henüz katılımcı yok.</TableCell></TableRow>
                                 ) : (
                                     selectedTaskAssignments.map((a: any) => (
                                         <TableRow key={a.id}>
                                             <TableCell>{a.user.nick || a.user.name} ({a.user.role})</TableCell>
                                             <TableCell><Badge variant="outline">{a.status}</Badge></TableCell>
                                             <TableCell>{new Date(a.assignedAt).toLocaleDateString('tr-TR')}</TableCell>
-                                            <TableCell>{a.score || "-"}</TableCell>
+                                            <TableCell>
+                                                <ScoreCell assignment={a} onSuccess={() => handleViewAssignments({ id: editTask.id || (tasks.find(t => t.subject === currentTaskSubject)?.id) } as any)} />
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 )}
@@ -400,5 +402,76 @@ export default function TasksPage() {
                 </DialogContent>
             </Dialog>
         </div >
+    );
+}
+
+function ScoreCell({ assignment, onSuccess }: { assignment: any, onSuccess: () => void }) {
+    const [isEditing, setIsEditing] = useState(false);
+    const [score, setScore] = useState(assignment.score || "");
+    const [loading, setLoading] = useState(false);
+
+    const handleSave = async () => {
+        if (score === "" || isNaN(Number(score)) || Number(score) < 0) {
+            alert("Geçerli bir puan giriniz.");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const res = await fetch("/api/tasks/assignments/score", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ assignmentId: assignment.id, score: Number(score) }),
+            });
+
+            if (res.ok) {
+                setIsEditing(false);
+                onSuccess();
+            } else {
+                alert("Puan kaydedilemedi.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Hata oluştu.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (isEditing) {
+        return (
+            <div className="flex items-center gap-1">
+                <Input
+                    type="number"
+                    value={score}
+                    onChange={(e) => setScore(e.target.value)}
+                    className="w-16 h-8"
+                    placeholder="0-100"
+                />
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={handleSave} disabled={loading}>
+                    <Check className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={() => setIsEditing(false)} disabled={loading}>
+                    <X className="h-4 w-4" />
+                </Button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex items-center gap-2 group">
+            <span className="font-semibold">{assignment.score !== null ? assignment.score : "-"}</span>
+            {/* Show Rate button if no score and status is valid, or edit button if admin */}
+            {(assignment.status === "COMPLETED" || assignment.score !== null) && (
+                <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setIsEditing(true)}>
+                    <Edit className="h-3 w-3" />
+                </Button>
+            )}
+            {assignment.score === null && assignment.status === "COMPLETED" && (
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setIsEditing(true)}>
+                    Puan Ver
+                </Button>
+            )}
+        </div>
     );
 }
