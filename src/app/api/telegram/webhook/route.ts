@@ -103,10 +103,36 @@ export async function POST(req: NextRequest) {
 
         if (update.message) {
             const chatId = update.message.chat.id;
-            const text = update.message.text;
+            const text = update.message.text || "";
 
-            if (text === "/start") {
-                await bot.sendMessage(chatId, `👋 Merhaba! Telegram ID'niz: \`${chatId}\`\n\nBu ID'yi panele gidip kullanıcı ayarlarınıza ekleyebilirsiniz.`, { parse_mode: 'Markdown' });
+            if (text.startsWith("/start")) {
+                const args = text.split(" ");
+                // args[0] is "/start", args[1] is the parameter if exists
+
+                if (args.length > 1 && args[1]) {
+                    const userIdParam = args[1];
+
+                    // Try to find user with this ID
+                    const user = await prisma.user.findUnique({ where: { id: userIdParam } });
+
+                    if (user) {
+                        try {
+                            await prisma.user.update({
+                                where: { id: userIdParam },
+                                data: { telegram: String(chatId) }
+                            });
+                            await bot.sendMessage(chatId, `✅ Harika! Telegram hesabınız **${user.name || user.email}** kullanıcısıyla başarıyla eşleştirildi. Artık bildirimleri buradan alabileceksiniz.`);
+                        } catch (err) {
+                            console.error("Link user error:", err);
+                            await bot.sendMessage(chatId, "⚠️ Bir hata oluştu. Lütfen yöneticiye başvurun.");
+                        }
+                    } else {
+                        await bot.sendMessage(chatId, "⚠️ Kullanıcı bulunamadı. Lütfen paneldeki linki doğru kullandığınızdan emin olun.");
+                    }
+                } else {
+                    // No parameter, just return ID
+                    await bot.sendMessage(chatId, `👋 Merhaba! Telegram ID'niz: \`${chatId}\`\n\nEğer otomatik eşleşme istiyorsanız panele gidip 'Telegram Bağla' butonuna tıklayarak beni tekrar başlatın.`, { parse_mode: 'Markdown' });
+                }
             }
         }
 
