@@ -130,8 +130,34 @@ export async function POST(req: NextRequest) {
                         await bot.sendMessage(chatId, "⚠️ Kullanıcı bulunamadı. Lütfen paneldeki linki doğru kullandığınızdan emin olun.");
                     }
                 } else {
-                    // No parameter, just return ID
-                    await bot.sendMessage(chatId, `👋 Merhaba! Telegram ID'niz: \`${chatId}\`\n\nEğer otomatik eşleşme istiyorsanız panele gidip 'Telegram Bağla' butonuna tıklayarak beni tekrar başlatın.`, { parse_mode: 'Markdown' });
+                    // No parameter, check if user exists or register them
+                    const existingUser = await prisma.user.findFirst({ where: { telegram: String(chatId) } });
+
+                    if (existingUser) {
+                        await bot.sendMessage(chatId, `👋 Tekrar merhaba ${existingUser.name || 'User'}! Zaten sisteme kayıtlısınız.`);
+                    } else {
+                        // Register new user
+                        const from = update.message.from || {};
+                        const firstName = from.first_name || "";
+                        const lastName = from.last_name || "";
+                        const username = from.username || `user_${chatId}`;
+                        const name = [firstName, lastName].filter(Boolean).join(" ") || "Telegram User";
+
+                        try {
+                            const newUser = await prisma.user.create({
+                                data: {
+                                    telegram: String(chatId),
+                                    nick: username,
+                                    name: name,
+                                    role: "user"
+                                }
+                            });
+                            await bot.sendMessage(chatId, `✅ Aramıza hoş geldiniz ${name}! Kaydınız başarıyla oluşturuldu.\n\nArtık size atanan görevleri buradan takip edebilirsiniz.`);
+                        } catch (err) {
+                            console.error("Register Error:", err);
+                            await bot.sendMessage(chatId, "⚠️ Kayıt sırasında bir hata oluştu.");
+                        }
+                    }
                 }
             }
         }
