@@ -50,6 +50,52 @@ export default function TagsPage() {
         fetchTags();
     }, []);
 
+    const [isUsersOpen, setIsUsersOpen] = useState(false);
+    const [selectedTagForUsers, setSelectedTagForUsers] = useState<any>(null);
+    const [tagUsers, setTagUsers] = useState<any[]>([]);
+    const [usersLoading, setUsersLoading] = useState(false);
+
+    const openUsers = (tag: any) => {
+        setSelectedTagForUsers(tag);
+        setIsUsersOpen(true);
+        fetchTagUsers(tag.id);
+    };
+
+    const fetchTagUsers = async (tagId: string) => {
+        setUsersLoading(true);
+        try {
+            const res = await fetch(`/api/tags/users?tagId=${tagId}`);
+            if (res.ok) {
+                const data = await res.json();
+                setTagUsers(Array.isArray(data) ? data : []);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setUsersLoading(false);
+        }
+    };
+
+    const handleRemoveUserFromTag = async (userId: string) => {
+        if (!confirm("Bu kullanıcıyı etiketten çıkarmak istediğinize emin misiniz?")) return;
+        try {
+            const res = await fetch("/api/tags/users", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tagId: selectedTagForUsers.id, userId }),
+            });
+            if (res.ok) {
+                alert("Kullanıcı etiketten çıkarıldı!");
+                fetchTagUsers(selectedTagForUsers.id);
+                fetchTags(); // Update counts
+            } else {
+                alert("Hata oluştu");
+            }
+        } catch (e) {
+            alert("Hata: " + e);
+        }
+    };
+
     const handleSaveTag = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -141,6 +187,9 @@ export default function TagsPage() {
                                         <TableCell>{tag._count?.tasks || 0}</TableCell>
                                         <TableCell>
                                             <div className="flex gap-2">
+                                                <Button size="icon" variant="ghost" title="Kullanıcıları Gör" onClick={() => openUsers(tag)}>
+                                                    <Users className="h-4 w-4" />
+                                                </Button>
                                                 <Button size="icon" variant="ghost" onClick={() => openEdit(tag)}>
                                                     <Edit className="h-4 w-4" />
                                                 </Button>
@@ -173,6 +222,44 @@ export default function TagsPage() {
                         </div>
                         <Button type="submit" className="w-full">Kaydet</Button>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isUsersOpen} onOpenChange={setIsUsersOpen}>
+                <DialogContent className="max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle>Kullanıcılar: {selectedTagForUsers?.name}</DialogTitle>
+                    </DialogHeader>
+                    <div className="max-h-[60vh] overflow-y-auto">
+                        {usersLoading ? (
+                            <div className="text-center py-4">Yükleniyor...</div>
+                        ) : tagUsers.length === 0 ? (
+                            <div className="text-center py-4 text-muted-foreground">Bu etikette kullanıcı yok.</div>
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Nick</TableHead>
+                                        <TableHead>İsim</TableHead>
+                                        <TableHead className="w-[50px]"></TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {tagUsers.map(u => (
+                                        <TableRow key={u.id}>
+                                            <TableCell className="font-medium">{u.nick}</TableCell>
+                                            <TableCell>{u.name}</TableCell>
+                                            <TableCell>
+                                                <Button size="sm" variant="ghost" className="text-red-500 h-8 w-8 p-0" onClick={() => handleRemoveUserFromTag(u.id)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>
