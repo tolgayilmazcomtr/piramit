@@ -30,7 +30,7 @@ const friendLinks = [
     { href: "/friend/dashboard", label: "Onay Paneli", icon: UserCheck },
 ];
 
-export function Sidebar() {
+export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
     const { data: session } = useSession();
     const role = (session?.user as any)?.role || "user";
@@ -38,7 +38,7 @@ export function Sidebar() {
     const links = role === "friend" ? friendLinks : adminLinks;
 
     return (
-        <div className="flex h-full w-64 flex-col border-r bg-white dark:bg-gray-900">
+        <div className={cn("flex h-full w-64 flex-col border-r bg-white dark:bg-gray-900", className)}>
             <div className="flex h-14 items-center border-b px-6">
                 <span className="text-lg font-bold">Piramit Admin</span>
             </div>
