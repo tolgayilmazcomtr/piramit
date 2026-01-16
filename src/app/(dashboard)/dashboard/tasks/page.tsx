@@ -45,6 +45,9 @@ type Task = {
         accepted: number;
         completed: number;
         rejected: number;
+        in_progress: number;
+        waiting: number;
+        failed: number;
     };
 };
 
@@ -63,7 +66,8 @@ export default function TasksPage() {
     // Assignments State
     const [isAssignmentsOpen, setIsAssignmentsOpen] = useState(false);
     const [selectedTaskAssignments, setSelectedTaskAssignments] = useState<any[]>([]);
-    const [currentTaskSubject, setCurrentTaskSubject] = useState("");
+    const [currentTask, setCurrentTask] = useState<Task | null>(null);
+    const [assignmentFilter, setAssignmentFilter] = useState("ALL");
 
     const fetchTasks = async () => {
         try {
@@ -152,7 +156,8 @@ export default function TasksPage() {
     };
 
     const handleViewAssignments = async (task: Task) => {
-        setCurrentTaskSubject(task.subject);
+        setCurrentTask(task);
+        setAssignmentFilter("ALL");
         try {
             const res = await fetch(`/api/tasks/${task.id}/assignments`);
             if (res.ok) {
@@ -266,12 +271,14 @@ export default function TasksPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="text-xs space-y-1">
-                                                    <div className="text-green-600 font-semibold">
-                                                        Kabul: {task.stats?.accepted || 0}
+                                                <div className="flex flex-col gap-1 text-xs">
+                                                    <div className="flex gap-2">
+                                                        <span className="text-green-600 font-semibold" title="Tamamlandı">Tamam: {task.stats?.completed || 0}</span>
+                                                        <span className="text-blue-600 font-semibold" title="Kabul / Devam">Devam: {(task.stats?.accepted || 0) + (task.stats?.in_progress || 0)}</span>
                                                     </div>
-                                                    <div className="text-blue-600 font-semibold">
-                                                        Tamam: {task.stats?.completed || 0}
+                                                    <div className="flex gap-2">
+                                                        <span className="text-gray-500" title="Bekleyen">Bekleyen: {task.stats?.waiting || 0}</span>
+                                                        <span className="text-red-500" title="Red/İptal">Red: {(task.stats?.rejected || 0) + (task.stats?.failed || 0)}</span>
                                                     </div>
                                                 </div>
                                             </TableCell>
@@ -369,9 +376,27 @@ export default function TasksPage() {
             <Dialog open={isAssignmentsOpen} onOpenChange={setIsAssignmentsOpen}>
                 <DialogContent className="max-w-3xl">
                     <DialogHeader>
-                        <DialogTitle>Görev Katılımcıları: {currentTaskSubject}</DialogTitle>
+                        <DialogTitle>Görev Katılımcıları: {currentTask?.subject}</DialogTitle>
                     </DialogHeader>
-                    <div>
+                    <div className="flex gap-2 mb-4 border-b pb-2 overflow-x-auto">
+                        <Button variant={assignmentFilter === "ALL" ? "default" : "outline"} size="sm" onClick={() => setAssignmentFilter("ALL")}>
+                            Tümü ({selectedTaskAssignments.length})
+                        </Button>
+                        <Button variant={assignmentFilter === "COMPLETED" ? "default" : "outline"} size="sm" onClick={() => setAssignmentFilter("COMPLETED")}>
+                            Tamamlandı ({selectedTaskAssignments.filter(a => a.status === "COMPLETED").length})
+                        </Button>
+                        <Button variant={assignmentFilter === "IN_PROGRESS" ? "default" : "outline"} size="sm" onClick={() => setAssignmentFilter("IN_PROGRESS")}>
+                            Devam Eden ({selectedTaskAssignments.filter(a => ["IN_PROGRESS", "ACCEPTED"].includes(a.status)).length})
+                        </Button>
+                        <Button variant={assignmentFilter === "REJECTED" ? "default" : "outline"} size="sm" onClick={() => setAssignmentFilter("REJECTED")}>
+                            Reddedildi ({selectedTaskAssignments.filter(a => a.status === "REJECTED").length})
+                        </Button>
+                        <Button variant={assignmentFilter === "WAITING" ? "default" : "outline"} size="sm" onClick={() => setAssignmentFilter("WAITING")}>
+                            Bekleyen ({selectedTaskAssignments.filter(a => a.status === "ASSIGNED").length})
+                        </Button>
+                    </div>
+
+                    <div className="max-h-[60vh] overflow-y-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -385,16 +410,35 @@ export default function TasksPage() {
                                 {selectedTaskAssignments.length === 0 ? (
                                     <TableRow><TableCell colSpan={4} className="text-center">Henüz katılımcı yok.</TableCell></TableRow>
                                 ) : (
-                                    selectedTaskAssignments.map((a: any) => (
-                                        <TableRow key={a.id}>
-                                            <TableCell>{a.user.nick || a.user.name} ({a.user.role})</TableCell>
-                                            <TableCell><Badge variant="outline">{a.status}</Badge></TableCell>
-                                            <TableCell>{new Date(a.assignedAt).toLocaleDateString('tr-TR')}</TableCell>
-                                            <TableCell>
-                                                <ScoreCell assignment={a} onSuccess={() => handleViewAssignments({ id: editTask.id || (tasks.find(t => t.subject === currentTaskSubject)?.id) } as any)} />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                    selectedTaskAssignments
+                                        .filter(a => {
+                                            if (assignmentFilter === "ALL") return true;
+                                            if (assignmentFilter === "COMPLETED") return a.status === "COMPLETED";
+                                            if (assignmentFilter === "IN_PROGRESS") return ["IN_PROGRESS", "ACCEPTED"].includes(a.status);
+                                            if (assignmentFilter === "REJECTED") return a.status === "REJECTED";
+                                            if (assignmentFilter === "WAITING") return a.status === "ASSIGNED";
+                                            return true;
+                                        })
+                                        .map((a: any) => {
+                                            // Check for overdue: If task duration exists and is past, and status is IN_PROGRESS/ACCEPTED
+                                            const isOverdue = currentTask?.duration && new Date(currentTask.duration) < new Date() && ["IN_PROGRESS", "ACCEPTED"].includes(a.status);
+
+                                            return (
+                                                <TableRow key={a.id} className={isOverdue ? "bg-red-50" : ""}>
+                                                    <TableCell>
+                                                        <div className="flex flex-col">
+                                                            <span>{a.user.nick || a.user.name} ({a.user.role})</span>
+                                                            {isOverdue && <span className="text-xs text-red-500 font-bold">⚠️ Süresi Geçti (Yarım)</span>}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell><Badge variant="outline">{a.status}</Badge></TableCell>
+                                                    <TableCell>{new Date(a.assignedAt).toLocaleDateString('tr-TR')}</TableCell>
+                                                    <TableCell>
+                                                        <ScoreCell assignment={a} onSuccess={() => currentTask && handleViewAssignments(currentTask)} />
+                                                    </TableCell>
+                                                </TableRow>
+                                            )
+                                        })
                                 )}
                             </TableBody>
                         </Table>

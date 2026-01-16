@@ -26,9 +26,13 @@ export async function GET(req: NextRequest) {
         const enrichedTasks = (tasks as any[]).map(t => {
             const stats = {
                 total: t.assignments?.length || 0,
+                // Statuses: ASSIGNED (Waiting), ACCEPTED (In Progress/Accepted), REJECTED, IN_PROGRESS, COMPLETED, FAILED
                 accepted: t.assignments?.filter((a: any) => a.status === 'ACCEPTED').length || 0,
                 completed: t.assignments?.filter((a: any) => a.status === 'COMPLETED').length || 0,
                 rejected: t.assignments?.filter((a: any) => a.status === 'REJECTED').length || 0,
+                in_progress: t.assignments?.filter((a: any) => a.status === 'IN_PROGRESS').length || 0,
+                waiting: t.assignments?.filter((a: any) => a.status === 'ASSIGNED').length || 0,
+                failed: t.assignments?.filter((a: any) => a.status === 'FAILED').length || 0,
             };
             return { ...t, stats, assignments: undefined };
         });
