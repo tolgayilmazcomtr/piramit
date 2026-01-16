@@ -285,11 +285,11 @@ export default function TiersPage() {
                         <DialogTitle>Kullanıcılar: {selectedTierForUsers?.name}</DialogTitle>
                     </DialogHeader>
 
-                    <div className="flex gap-2 items-end mb-4 border-b pb-4">
-                        <div className="flex-1">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:items-end mb-4 border-b pb-4">
+                        <div className="flex-1 w-full">
                             <Label>Kişi Ekle</Label>
                             <Select value={selectedUserToAdd} onValueChange={setSelectedUserToAdd}>
-                                <SelectTrigger>
+                                <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Kullanıcı Seçiniz" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -303,7 +303,7 @@ export default function TiersPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <Button onClick={handleAddUserToTier} disabled={!selectedUserToAdd}>Ekle</Button>
+                        <Button className="w-full sm:w-auto" onClick={handleAddUserToTier} disabled={!selectedUserToAdd}>Ekle</Button>
                     </div>
 
                     <div className="max-h-[50vh] overflow-y-auto">

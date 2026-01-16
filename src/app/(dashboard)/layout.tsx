@@ -34,7 +34,7 @@ export default function DashboardLayout({
             </div>
             <div className="flex-1 flex flex-col">
                 <Header />
-                <main className="p-6 overflow-auto">{children}</main>
+                <main className="p-4 lg:p-6 overflow-auto w-full max-w-[100vw]">{children}</main>
             </div>
         </div>
     );

@@ -222,7 +222,7 @@ export default function PeoplePage() {
                             </div>
 
                             {isAdmin && (
-                                <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-md">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-muted/50 p-4 rounded-md">
                                     <div>
                                         <Label>Rol (Yetki)</Label>
                                         <Select
@@ -257,7 +257,7 @@ export default function PeoplePage() {
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <Label>İsim Soyisim</Label>
                                     <Input
@@ -275,8 +275,8 @@ export default function PeoplePage() {
                             </div>
 
                             {(isAdmin || newPerson.role === "friend" || newPerson.role === "admin") && (
-                                <div className="grid grid-cols-2 gap-4 bg-yellow-50 p-4 rounded-md border border-yellow-200">
-                                    <div className="col-span-2 text-xs font-semibold text-yellow-800 mb-2">Login Bilgileri (Friend/Admin için gereklidir)</div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-yellow-50 p-4 rounded-md border border-yellow-200">
+                                    <div className="col-span-1 sm:col-span-2 text-xs font-semibold text-yellow-800 mb-2">Login Bilgileri (Friend/Admin için gereklidir)</div>
                                     <div>
                                         <Label>Email (Giriş İçin)</Label>
                                         <Input
@@ -298,7 +298,7 @@ export default function PeoplePage() {
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <Label>Discord ID</Label>
                                     <Input
@@ -408,7 +408,7 @@ export default function PeoplePage() {
                         </div>
 
                         {isAdmin && (
-                            <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-md">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-muted/50 p-4 rounded-md">
                                 <div>
                                     <Label>Rol (Yetki)</Label>
                                     <Select
@@ -443,7 +443,7 @@ export default function PeoplePage() {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <Label>İsim Soyisim</Label>
                                 <Input
@@ -461,8 +461,8 @@ export default function PeoplePage() {
                         </div>
 
                         {(isAdmin) && (
-                            <div className="grid grid-cols-2 gap-4 bg-yellow-50 p-4 rounded-md border border-yellow-200">
-                                <div className="col-span-2 text-xs font-semibold text-yellow-800 mb-2">Login Bilgileri Güncelleme</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-yellow-50 p-4 rounded-md border border-yellow-200">
+                                <div className="col-span-1 sm:col-span-2 text-xs font-semibold text-yellow-800 mb-2">Login Bilgileri Güncelleme</div>
                                 <div>
                                     <Label>Email</Label>
                                     <Input
@@ -483,7 +483,7 @@ export default function PeoplePage() {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <Label>Discord ID</Label>
                                 <Input
