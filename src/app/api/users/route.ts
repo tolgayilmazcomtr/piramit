@@ -38,7 +38,9 @@ export async function GET(req: NextRequest) {
                 telegram: true,
                 role: true,
                 managerId: true,
-                tier: { select: { name: true } }
+                tierId: true,
+                tier: { select: { name: true } },
+                tags: { select: { id: true, name: true } }
             }
         });
         return Response.json(users);

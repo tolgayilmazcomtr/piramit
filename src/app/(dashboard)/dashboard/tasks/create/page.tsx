@@ -62,6 +62,20 @@ export default function CreateTaskPage() {
         fetchData();
     }, []);
 
+    // Filter users based on Tier and Tags selection
+    const filteredUsers = users.filter(user => {
+        const matchesTier = !selectedTier || user.tierId === selectedTier;
+        const matchesTags = selectedTags.length === 0 || (user.tags && user.tags.some((t: any) => selectedTags.includes(t.id)));
+        return matchesTier && matchesTags;
+    });
+
+    const audienceCount = () => {
+        if (targetType === "all") return filteredUsers.length;
+        if (targetType === "selected") return selectedUsers.length;
+        if (targetType === "top") return Math.min(topUserCount, filteredUsers.length);
+        return 0;
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -197,7 +211,12 @@ export default function CreateTaskPage() {
                         </div>
 
                         <div className="space-y-4 border p-4 rounded-md">
-                            <Label className="text-base">Hedef Kitle</Label>
+                            <div className="flex justify-between items-center">
+                                <Label className="text-base">Hedef Kitle</Label>
+                                <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded dark:bg-blue-200 dark:text-blue-800">
+                                    Tahmini Erişim: {audienceCount()} Kişi
+                                </span>
+                            </div>
                             <div className="flex gap-4">
                                 <label className="flex items-center gap-2">
                                     <input
@@ -241,12 +260,12 @@ export default function CreateTaskPage() {
                                     </div>
                                     <Select onValueChange={(val) => !selectedUsers.includes(val) && setSelectedUsers([...selectedUsers, val])}>
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Kişi seç..." />
+                                            <SelectValue placeholder="Kişi seç/ara..." />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {users.map((u: any) => (
+                                            {filteredUsers.map((u: any) => (
                                                 <SelectItem key={u.id} value={u.id}>
-                                                    {u.name || u.email}
+                                                    {u.nick} ({u.name}) - {u.score} Puan
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -256,11 +275,11 @@ export default function CreateTaskPage() {
 
                             {targetType === "top" && (
                                 <div className="space-y-2">
-                                    <Label>İlk X Kişi: {topUserCount}</Label>
+                                    <Label>İlk X Kişi: {topUserCount > filteredUsers.length ? filteredUsers.length : topUserCount}</Label>
                                     <input
                                         type="range"
                                         min="1"
-                                        max="100"
+                                        max={Math.max(1, filteredUsers.length)}
                                         value={topUserCount}
                                         onChange={(e) => setTopUserCount(Number(e.target.value))}
                                         className="w-full"
