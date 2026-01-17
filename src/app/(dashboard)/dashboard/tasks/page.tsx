@@ -51,6 +51,24 @@ type Task = {
     };
 };
 
+const TASK_STATUS_MAP: Record<string, string> = {
+    "PENDING": "Bekliyor",
+    "WAITING_APPROVAL": "Onay Bekliyor",
+    "IN_PROGRESS": "Devam Ediyor",
+    "WAITING_VERIFICATION": "Doğrulama Bekliyor",
+    "COMPLETED": "Tamamlandı",
+    "CANCELLED": "İptal"
+};
+
+const ASSIGNMENT_STATUS_MAP: Record<string, string> = {
+    "ASSIGNED": "Atandı (Bekliyor)",
+    "ACCEPTED": "Kabul Edildi",
+    "IN_PROGRESS": "Devam Ediyor",
+    "COMPLETED": "Tamamlandı",
+    "REJECTED": "Reddedildi",
+    "FAILED": "Başarısız"
+};
+
 export default function TasksPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [users, setUsers] = useState<any[]>([]);
@@ -185,17 +203,19 @@ export default function TasksPage() {
     };
 
     const getStatusBadge = (status: string) => {
+        const label = TASK_STATUS_MAP[status] || status;
         switch (status) {
-            case "Bekliyor":
-                return <Badge variant="secondary">Bekliyor</Badge>;
-            case "Devam Ediyor":
-                return <Badge variant="default">Devam Ediyor</Badge>;
-            case "Tamamlandı":
-                return <Badge className="bg-green-500">Tamamlandı</Badge>;
-            case "İptal":
-                return <Badge variant="destructive">İptal</Badge>;
+            case "PENDING":
+                return <Badge variant="secondary">{label}</Badge>;
+            case "IN_PROGRESS":
+                return <Badge variant="default">{label}</Badge>;
+            case "COMPLETED":
+                return <Badge className="bg-green-500">{label}</Badge>;
+            case "CANCELLED":
+            case "REJECTED": // In case rejected is used for tasks
+                return <Badge variant="destructive">{label}</Badge>;
             default:
-                return <Badge variant="outline">{status}</Badge>;
+                return <Badge variant="outline">{label}</Badge>;
         }
     };
 
@@ -219,11 +239,9 @@ export default function TasksPage() {
                             onChange={(e) => setStatusFilter(e.target.value)}
                         >
                             <option value="ALL">Tüm Durumlar</option>
-                            <option value="Bekliyor">Bekliyor</option>
-                            <option value="Onay Bekliyor">Onay Bekliyor</option>
-                            <option value="Devam Ediyor">Devam Ediyor</option>
-                            <option value="Tamamlandı">Tamamlandı</option>
-                            <option value="İptal">İptal</option>
+                            {Object.entries(TASK_STATUS_MAP).map(([key, label]) => (
+                                <option key={key} value={key}>{label}</option>
+                            ))}
                         </select>
                     </div>
 
@@ -345,11 +363,9 @@ export default function TasksPage() {
                                 >
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="PENDING">Bekliyor (PENDING)</SelectItem>
-                                        <SelectItem value="WAITING_APPROVAL">Onay Bekliyor</SelectItem>
-                                        <SelectItem value="IN_PROGRESS">Devam Ediyor</SelectItem>
-                                        <SelectItem value="COMPLETED">Tamamlandı</SelectItem>
-                                        <SelectItem value="CANCELLED">İptal</SelectItem>
+                                        {Object.entries(TASK_STATUS_MAP).map(([key, label]) => (
+                                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -431,7 +447,7 @@ export default function TasksPage() {
                                                             {isOverdue && <span className="text-xs text-red-500 font-bold">⚠️ Süresi Geçti (Yarım)</span>}
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell><Badge variant="outline">{a.status}</Badge></TableCell>
+                                                    <TableCell><Badge variant="outline">{ASSIGNMENT_STATUS_MAP[a.status] || a.status}</Badge></TableCell>
                                                     <TableCell>{new Date(a.assignedAt).toLocaleDateString('tr-TR')}</TableCell>
                                                     <TableCell>
                                                         <ScoreCell assignment={a} onSuccess={() => currentTask && handleViewAssignments(currentTask)} />
