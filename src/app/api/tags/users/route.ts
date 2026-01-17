@@ -65,3 +65,32 @@ export async function DELETE(req: Request) {
         return NextResponse.json({ error: "Failed to remove user from tag" }, { status: 500 });
     }
 }
+
+export async function POST(req: Request) {
+    try {
+        const session = await auth();
+        if ((session?.user as any)?.role !== "admin") {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const body = await req.json();
+        const { tagId, userId } = body;
+
+        if (!tagId || !userId) {
+            return NextResponse.json({ error: "Tag ID and User ID required" }, { status: 400 });
+        }
+
+        await prisma.tag.update({
+            where: { id: tagId },
+            data: {
+                users: {
+                    connect: { id: userId }
+                }
+            }
+        });
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        return NextResponse.json({ error: "Failed to add user to tag" }, { status: 500 });
+    }
+}

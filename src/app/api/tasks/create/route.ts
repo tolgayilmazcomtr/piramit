@@ -42,7 +42,22 @@ export async function POST(req: NextRequest) {
 
         let targetUsers: any[] = [];
         if (target.type === "all") {
-            targetUsers = await prisma.user.findMany({ where: { role: 'user', telegram: { not: null } } });
+            // Apply filtering based on Tier and Tags if provided
+            const whereClause: any = { role: 'user', telegram: { not: null } };
+
+            if (tierId) {
+                whereClause.tierId = tierId;
+            }
+
+            if (tagIds && tagIds.length > 0) {
+                whereClause.tags = {
+                    some: {
+                        id: { in: tagIds }
+                    }
+                };
+            }
+
+            targetUsers = await prisma.user.findMany({ where: whereClause });
         } else if (target.type === "selected") {
             targetUsers = await prisma.user.findMany({ where: { id: { in: target.userIds }, telegram: { not: null } } });
         } else if (target.type === "top") {

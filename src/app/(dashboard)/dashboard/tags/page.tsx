@@ -22,6 +22,13 @@ import {
     DialogFooter,
     DialogTrigger
 } from "@/components/ui/dialog";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 // Developer: Tolga Yılmaz
 
@@ -53,12 +60,27 @@ export default function TagsPage() {
     const [isUsersOpen, setIsUsersOpen] = useState(false);
     const [selectedTagForUsers, setSelectedTagForUsers] = useState<any>(null);
     const [tagUsers, setTagUsers] = useState<any[]>([]);
+    const [allUsers, setAllUsers] = useState<any[]>([]);
     const [usersLoading, setUsersLoading] = useState(false);
+    const [selectedUserToAdd, setSelectedUserToAdd] = useState("");
+
+    const fetchAllUsers = async () => {
+        try {
+            const res = await fetch("/api/users");
+            if (res.ok) {
+                const data = await res.json();
+                setAllUsers(Array.isArray(data) ? data : []);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     const openUsers = (tag: any) => {
         setSelectedTagForUsers(tag);
         setIsUsersOpen(true);
         fetchTagUsers(tag.id);
+        if (allUsers.length === 0) fetchAllUsers();
     };
 
     const fetchTagUsers = async (tagId: string) => {
@@ -146,6 +168,30 @@ export default function TagsPage() {
         setIsEditOpen(true);
     };
 
+    const handleAddUserToTag = async () => {
+        if (!selectedUserToAdd) return;
+        try {
+            const res = await fetch("/api/tags/users", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tagId: selectedTagForUsers.id, userId: selectedUserToAdd }),
+            });
+            if (res.ok) {
+                alert("Kullanıcı etikete eklendi!");
+                setSelectedUserToAdd("");
+                fetchTagUsers(selectedTagForUsers.id);
+                fetchTags(); // Update counts
+            } else {
+                alert("Hata oluştu");
+            }
+        } catch (e) {
+            alert("Hata: " + e);
+        }
+    };
+
+    // Import Select components (Assuming they are imported at top, if not I will check imports)
+    // Checking imports... Select is not imported in original file. I need to add imports.
+
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
@@ -230,6 +276,28 @@ export default function TagsPage() {
                     <DialogHeader>
                         <DialogTitle>Kullanıcılar: {selectedTagForUsers?.name}</DialogTitle>
                     </DialogHeader>
+
+                    <div className="flex flex-col sm:flex-row gap-2 sm:items-end mb-4 border-b pb-4">
+                        <div className="flex-1 w-full">
+                            <Label>Kişi Ekle</Label>
+                            <Select value={selectedUserToAdd} onValueChange={setSelectedUserToAdd}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Kullanıcı Seçiniz" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {allUsers
+                                        .filter(u => !tagUsers.some(tu => tu.id === u.id)) // Hide already added users
+                                        .map(u => (
+                                            <SelectItem key={u.id} value={u.id}>
+                                                {u.nick} ({u.name})
+                                            </SelectItem>
+                                        ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Button className="w-full sm:w-auto" onClick={handleAddUserToTag} disabled={!selectedUserToAdd}>Ekle</Button>
+                    </div>
+
                     <div className="max-h-[60vh] overflow-y-auto">
                         {usersLoading ? (
                             <div className="text-center py-4">Yükleniyor...</div>
