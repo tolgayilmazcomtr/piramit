@@ -69,8 +69,7 @@ export async function POST(req: NextRequest) {
 
                 } else if (action === "approve") {
                     // Manager approves specific user assignment
-                    // Data format: approve_taskId_userId
-                    const targetUserId = userId; // In this context, the 3rd part IS the target user id
+                    const targetUserId = userId;
 
                     if (!targetUserId) {
                         await bot.sendMessage(chatId, "⚠️ Hata: Kullanıcı bilgisi eksik.");
@@ -82,7 +81,6 @@ export async function POST(req: NextRequest) {
                         data: { status: "IN_PROGRESS", acceptedAt: new Date() }
                     });
 
-                    // Update global task status to showing activity
                     await prisma.task.update({
                         where: { id: taskId },
                         data: { status: "IN_PROGRESS" }
@@ -90,21 +88,86 @@ export async function POST(req: NextRequest) {
 
                     await bot.sendMessage(chatId, "✅ Kullanıcının görev başlangıcını onayladınız.");
 
-                    // Notify The User
+                    // Notify The User with COMPLETE button
                     const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } });
                     if (targetUser?.telegram) {
-                        await bot.sendMessage(targetUser.telegram, `🚀 Göreviniz onaylandı! Başlayabilirsiniz.`);
+                        await bot.sendMessage(targetUser.telegram, `🚀 Göreviniz onaylandı! Başlayabilirsiniz.\n\nGörevi bitirdiğinizde aşağıdaki butona basın:`, {
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [{ text: "🏁 Tamamladım", callback_data: `complete_${taskId}_${targetUserId}` }]
+                                ]
+                            }
+                        });
+                    }
+
+                } else if (action === "complete") {
+                    // User marks completed -> Status WAITING_VERIFICATION
+                    const targetUserId = userId;
+
+                    await prisma.taskAssignment.update({
+                        where: { userId_taskId: { userId: targetUserId, taskId: taskId } },
+                        data: { status: "WAITING_VERIFICATION" }
+                    });
+
+                    await bot.sendMessage(chatId, "✅ Tebrikler! Görev tamamlandı bildirimi yöneticinize iletildi. Onay bekleniyor.");
+
+                    // Notify Manager
+                    const user = await prisma.user.findUnique({ where: { id: targetUserId }, include: { manager: true } });
+                    const task = await prisma.task.findUnique({ where: { id: taskId } });
+
+                    if (user?.manager?.telegram) {
+                        await bot.sendMessage(user.manager.telegram, `🏁 ${user.name} bir görevi tamamladığını bildirdi.\n\nGörev: ${task?.subject}\n\nOnaylıyor musunuz?`, {
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [
+                                        { text: "✅ Onayla (Tamamlandı)", callback_data: `verify_${taskId}_${targetUserId}` },
+                                        { text: "❌ Reddet", callback_data: `reject_verify_${taskId}_${targetUserId}` }
+                                    ]
+                                ]
+                            }
+                        });
+                    }
+
+                } else if (action === "verify") {
+                    // Manager verifies -> Status COMPLETED
+                    const targetUserId = userId;
+
+                    await prisma.taskAssignment.update({
+                        where: { userId_taskId: { userId: targetUserId, taskId: taskId } },
+                        data: { status: "COMPLETED", completedAt: new Date() }
+                    });
+
+                    await bot.sendMessage(chatId, "✅ Görevi onayladınız. Kullanıcı görevden puan kazandı (varsa).");
+
+                    const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } });
+                    if (targetUser?.telegram) {
+                        await bot.sendMessage(targetUser.telegram, `🎉 Harika Haber! Göreviniz doğrulandı ve tamamlandı.`);
+                    }
+
+                } else if (action === "reject_verify") {
+                    // Manager rejects verification -> Status IN_PROGRESS
+                    const targetUserId = userId;
+
+                    await prisma.taskAssignment.update({
+                        where: { userId_taskId: { userId: targetUserId, taskId: taskId } },
+                        data: { status: "IN_PROGRESS" }
+                    });
+
+                    await bot.sendMessage(chatId, "❌ Tamamlandı bildirimini reddettiniz.");
+
+                    const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } });
+                    if (targetUser?.telegram) {
+                        await bot.sendMessage(targetUser.telegram, `⚠️ Tamamlama bildiriminiz reddedildi. Lütfen eksikleri giderin ve tekrar Tamamladım diyin.`);
                     }
 
                 } else if (action === "reject_approval") {
-                    // Manager rejects
                     const targetUserId = userId;
 
                     if (!targetUserId) return Response.json({ success: true });
 
                     await prisma.taskAssignment.update({
                         where: { userId_taskId: { userId: targetUserId, taskId: taskId } },
-                        data: { status: "REJECTED" } // Or ASSIGNED to reset? REJECTED is clearer.
+                        data: { status: "REJECTED" }
                     });
 
                     await bot.sendMessage(chatId, "❌ Başlangıcı reddettiniz.");

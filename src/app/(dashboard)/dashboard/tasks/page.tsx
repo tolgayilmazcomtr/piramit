@@ -63,7 +63,9 @@ const TASK_STATUS_MAP: Record<string, string> = {
 const ASSIGNMENT_STATUS_MAP: Record<string, string> = {
     "ASSIGNED": "Atandı (Bekliyor)",
     "ACCEPTED": "Kabul Edildi",
+    "WAITING_APPROVAL": "Onay Bekliyor",
     "IN_PROGRESS": "Devam Ediyor",
+    "WAITING_VERIFICATION": "Doğrulama Bekliyor",
     "COMPLETED": "Tamamlandı",
     "REJECTED": "Reddedildi",
     "FAILED": "Başarısız"
