@@ -68,6 +68,17 @@ export async function POST(req: NextRequest) {
             });
         }
 
+        // Create Assignments for all targeted users
+        if (targetUsers.length > 0) {
+            await prisma.taskAssignment.createMany({
+                data: targetUsers.map(user => ({
+                    taskId: task.id,
+                    userId: user.id,
+                    status: "ASSIGNED"
+                }))
+            });
+        }
+
         // Send message to each user
         for (const user of targetUsers) {
             if (user.telegram) {

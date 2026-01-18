@@ -5,6 +5,7 @@ import bot from "@/lib/telegram";
 export async function POST(req: NextRequest) {
     try {
         const update = await req.json();
+        console.log("➡️ Telegram Webhook Received:", JSON.stringify(update, null, 2));
 
         if (update.callback_query) {
             const callbackQueryId = update.callback_query.id;
@@ -23,39 +24,35 @@ export async function POST(req: NextRequest) {
                 const userId = parts[2] || null; // For accept/reject actions by user
 
                 if (action === "accept" && userId) {
-                    // Check if task exists first
+                    // Check if task exists
                     const existingTask = await prisma.task.findUnique({ where: { id: taskId } });
                     if (!existingTask) {
                         await bot.sendMessage(chatId, "⚠️ Hata: Bu görev artık mevcut değil.");
                         return Response.json({ success: true });
                     }
-                    if (existingTask.status !== "PENDING") {
-                        await bot.sendMessage(chatId, `⚠️ Bu görev zaten şu durumda: ${existingTask.status}`);
-                        await bot.answerCallbackQuery(callbackQueryId, { text: "Görev zaten alınmış/tamamlanmış" });
-                        return Response.json({ success: true });
-                    }
 
-                    // User accepts task -> Status: WAITING_APPROVAL
-                    await prisma.task.update({
-                        where: { id: taskId },
-                        data: {
-                            status: "WAITING_APPROVAL",
-                            assigneeId: userId
-                        }
+                    // Update or Create Assignment
+                    // If multiple people apply, we update THEIR assignment. 
+                    // We don't block others unless the task logic requires it (assuming broad targeting).
+
+                    await prisma.taskAssignment.upsert({
+                        where: { userId_taskId: { userId: userId, taskId: taskId } },
+                        update: { status: "WAITING_APPROVAL" },
+                        create: { userId: userId, taskId: taskId, status: "WAITING_APPROVAL" }
                     });
 
                     // Notify user
                     await bot.sendMessage(chatId, "✅ Görevi kabul ettiniz! Yöneticinizden onay bekleniyor.");
 
-                    // Notify Manager (Friend) - Need to find manager of this user
+                    // Notify Manager (Friend)
                     const user = await prisma.user.findUnique({ where: { id: userId }, include: { manager: true } });
                     if (user?.manager?.telegram) {
-                        await bot.sendMessage(user.manager.telegram, `🔔 ${user.name} bir görevi kabul etti. Onaylıyor musunuz?`, {
+                        await bot.sendMessage(user.manager.telegram, `🔔 ${user.name} bir görevi kabul etti. Onaylıyor musunuz? (Görev: ${existingTask.subject})`, {
                             reply_markup: {
                                 inline_keyboard: [
                                     [
-                                        { text: "Onayla", callback_data: `approve_${taskId}` },
-                                        { text: "Reddet", callback_data: `reject_approval_${taskId}` }
+                                        { text: "Onayla", callback_data: `approve_${taskId}_${userId}` },
+                                        { text: "Reddet", callback_data: `reject_approval_${taskId}_${userId}` }
                                     ]
                                 ]
                             }
@@ -63,30 +60,59 @@ export async function POST(req: NextRequest) {
                     }
 
                 } else if (action === "reject" && userId) {
-                    // User rejects -> Log it or ignore? Just notify.
+                    await prisma.taskAssignment.update({
+                        where: { userId_taskId: { userId: userId, taskId: taskId } },
+                        data: { status: "REJECTED" }
+                    }).catch(() => { }); // Ignore if not found
+
                     await bot.sendMessage(chatId, "❌ Görevi reddettiniz.");
-                    // Maybe log rejection?
+
                 } else if (action === "approve") {
-                    // Manager approves -> Status: IN_PROGRESS
-                    const task = await prisma.task.update({
-                        where: { id: taskId },
-                        data: { status: "IN_PROGRESS" },
-                        include: { assignee: true }
+                    // Manager approves specific user assignment
+                    // Data format: approve_taskId_userId
+                    const targetUserId = userId; // In this context, the 3rd part IS the target user id
+
+                    if (!targetUserId) {
+                        await bot.sendMessage(chatId, "⚠️ Hata: Kullanıcı bilgisi eksik.");
+                        return Response.json({ success: true });
+                    }
+
+                    await prisma.taskAssignment.update({
+                        where: { userId_taskId: { userId: targetUserId, taskId: taskId } },
+                        data: { status: "IN_PROGRESS", acceptedAt: new Date() }
                     });
 
-                    await bot.sendMessage(chatId, "✅ Görev başlangıcını onayladınız.");
-                    if (task.assignee?.telegram) {
-                        await bot.sendMessage(task.assignee.telegram, `🚀 Göreviniz onaylandı! Başlayabilirsiniz: ${task.subject}`);
+                    // Update global task status to showing activity
+                    await prisma.task.update({
+                        where: { id: taskId },
+                        data: { status: "IN_PROGRESS" }
+                    }).catch(() => { });
+
+                    await bot.sendMessage(chatId, "✅ Kullanıcının görev başlangıcını onayladınız.");
+
+                    // Notify The User
+                    const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } });
+                    if (targetUser?.telegram) {
+                        await bot.sendMessage(targetUser.telegram, `🚀 Göreviniz onaylandı! Başlayabilirsiniz.`);
                     }
 
                 } else if (action === "reject_approval") {
-                    // Manager rejects -> Status: CANCELLED or PENDING (back to pool)
-                    const task = await prisma.task.update({
-                        where: { id: taskId },
-                        data: { status: "PENDING", assigneeId: null },
+                    // Manager rejects
+                    const targetUserId = userId;
+
+                    if (!targetUserId) return Response.json({ success: true });
+
+                    await prisma.taskAssignment.update({
+                        where: { userId_taskId: { userId: targetUserId, taskId: taskId } },
+                        data: { status: "REJECTED" } // Or ASSIGNED to reset? REJECTED is clearer.
                     });
 
-                    await bot.sendMessage(chatId, "❌ Görev başlangıcını reddettiniz.");
+                    await bot.sendMessage(chatId, "❌ Başlangıcı reddettiniz.");
+
+                    const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } });
+                    if (targetUser?.telegram) {
+                        await bot.sendMessage(targetUser.telegram, `❌ Görev başvurunuz reddedildi.`);
+                    }
                 }
 
                 // Success feedback
