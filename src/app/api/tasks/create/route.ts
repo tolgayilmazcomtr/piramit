@@ -87,8 +87,8 @@ export async function POST(req: NextRequest) {
                         reply_markup: {
                             inline_keyboard: [
                                 [
-                                    { text: "✅ Kabul Et", callback_data: `accept_${task.id}_${user.id}` },
-                                    { text: "❌ Reddet", callback_data: `reject_${task.id}_${user.id}` }
+                                    { text: "✅ Kabul Et", callback_data: `ac_${task.id}_${user.id}` },
+                                    { text: "❌ Reddet", callback_data: `rj_${task.id}_${user.id}` }
                                 ]
                             ]
                         }

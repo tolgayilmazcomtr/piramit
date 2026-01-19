@@ -23,7 +23,11 @@ export async function POST(req: NextRequest) {
                 const taskId = parts[1];
                 const userId = parts[2] || null; // For accept/reject actions by user
 
-                if (action === "accept" && userId) {
+                // Mapping short codes to actions for readability if needed, 
+                // but we will just check against short codes.
+                // ac=accept, rj=reject, ap=approve, ra=reject_approval, cp=complete, vf=verify, rv=reject_verify
+
+                if (action === "ac" && userId) {
                     // Check if task exists
                     const existingTask = await prisma.task.findUnique({ where: { id: taskId } });
                     if (!existingTask) {
@@ -32,9 +36,6 @@ export async function POST(req: NextRequest) {
                     }
 
                     // Update or Create Assignment
-                    // If multiple people apply, we update THEIR assignment. 
-                    // We don't block others unless the task logic requires it (assuming broad targeting).
-
                     await prisma.taskAssignment.upsert({
                         where: { userId_taskId: { userId: userId, taskId: taskId } },
                         update: { status: "WAITING_APPROVAL" },
@@ -51,15 +52,15 @@ export async function POST(req: NextRequest) {
                             reply_markup: {
                                 inline_keyboard: [
                                     [
-                                        { text: "Onayla", callback_data: `approve_${taskId}_${userId}` },
-                                        { text: "Reddet", callback_data: `reject_approval_${taskId}_${userId}` }
+                                        { text: "Onayla", callback_data: `ap_${taskId}_${userId}` },
+                                        { text: "Reddet", callback_data: `ra_${taskId}_${userId}` }
                                     ]
                                 ]
                             }
                         });
                     }
 
-                } else if (action === "reject" && userId) {
+                } else if (action === "rj" && userId) {
                     await prisma.taskAssignment.update({
                         where: { userId_taskId: { userId: userId, taskId: taskId } },
                         data: { status: "REJECTED" }
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
 
                     await bot.sendMessage(chatId, "❌ Görevi reddettiniz.");
 
-                } else if (action === "approve") {
+                } else if (action === "ap") {
                     // Manager approves specific user assignment
                     const targetUserId = userId;
 
@@ -94,13 +95,13 @@ export async function POST(req: NextRequest) {
                         await bot.sendMessage(targetUser.telegram, `🚀 Göreviniz onaylandı! Başlayabilirsiniz.\n\nGörevi bitirdiğinizde aşağıdaki butona basın:`, {
                             reply_markup: {
                                 inline_keyboard: [
-                                    [{ text: "🏁 Tamamladım", callback_data: `complete_${taskId}_${targetUserId}` }]
+                                    [{ text: "🏁 Tamamladım", callback_data: `cp_${taskId}_${targetUserId}` }]
                                 ]
                             }
                         });
                     }
 
-                } else if (action === "complete") {
+                } else if (action === "cp") {
                     // User marks completed -> Status WAITING_VERIFICATION
                     const targetUserId = userId;
 
@@ -120,15 +121,15 @@ export async function POST(req: NextRequest) {
                             reply_markup: {
                                 inline_keyboard: [
                                     [
-                                        { text: "✅ Onayla (Tamamlandı)", callback_data: `verify_${taskId}_${targetUserId}` },
-                                        { text: "❌ Reddet", callback_data: `reject_verify_${taskId}_${targetUserId}` }
+                                        { text: "✅ Onayla (Tamamlandı)", callback_data: `vf_${taskId}_${targetUserId}` },
+                                        { text: "❌ Reddet", callback_data: `rv_${taskId}_${targetUserId}` }
                                     ]
                                 ]
                             }
                         });
                     }
 
-                } else if (action === "verify") {
+                } else if (action === "vf") {
                     // Manager verifies -> Status COMPLETED
                     const targetUserId = userId;
 
@@ -144,7 +145,7 @@ export async function POST(req: NextRequest) {
                         await bot.sendMessage(targetUser.telegram, `🎉 Harika Haber! Göreviniz doğrulandı ve tamamlandı.`);
                     }
 
-                } else if (action === "reject_verify") {
+                } else if (action === "rv") {
                     // Manager rejects verification -> Status IN_PROGRESS
                     const targetUserId = userId;
 
@@ -160,7 +161,7 @@ export async function POST(req: NextRequest) {
                         await bot.sendMessage(targetUser.telegram, `⚠️ Tamamlama bildiriminiz reddedildi. Lütfen eksikleri giderin ve tekrar Tamamladım diyin.`);
                     }
 
-                } else if (action === "reject_approval") {
+                } else if (action === "ra") {
                     const targetUserId = userId;
 
                     if (!targetUserId) return Response.json({ success: true });
