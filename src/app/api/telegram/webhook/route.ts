@@ -179,14 +179,22 @@ export async function POST(req: NextRequest) {
                 }
 
                 // Success feedback
-                await bot.answerCallbackQuery(callbackQueryId, { text: "İşlem başarılı" });
+                try {
+                    await bot.answerCallbackQuery(callbackQueryId, { text: "İşlem başarılı" });
+                } catch (e) {
+                    console.log("Variadic callback answer error (ignored):", e);
+                }
 
             } catch (innerError: any) {
                 console.error("Webhook Logic Error:", innerError);
                 // Send error to user so they see what happened
                 await bot.sendMessage(chatId, `⚠️ Bir hata oluştu: ${innerError.message}`);
                 // Still try to stop the loading animation
-                await bot.answerCallbackQuery(callbackQueryId, { text: "Hata oluştu!" });
+                try {
+                    await bot.answerCallbackQuery(callbackQueryId, { text: "Hata oluştu!" });
+                } catch (e) {
+                    // ignore
+                }
             }
         }
 
